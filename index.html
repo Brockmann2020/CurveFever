@@ -92,8 +92,17 @@
 
     /* ───────────────────────────── Socket Events ───────────────────────────── */
     socket.on('state', ({ players:all, lines })=>{
-        Object.assign(players, all);
-        lines.forEach(seg => drawDot(seg.x, seg.y, players[seg.id].color));
+        for (const [id, info] of Object.entries(all)){
+            if(!players[id]){
+                players[id] = { id, color: info.color, path: [], alive: true,
+                    x:0, y:0, angle:0, keys:{left:false,right:false} };
+            }else{
+                players[id].color = info.color;
+            }
+        }
+        lines.forEach(seg => {
+            if(players[seg.id]) drawDot(seg.x, seg.y, players[seg.id].color);
+        });
     });
 
     socket.on('segment', ({ id, x, y })=>{
