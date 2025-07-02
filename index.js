@@ -10,9 +10,18 @@ app.use(express.static(__dirname));
 
 const broadcast = io.of('/broadcast');
 
-const players = new Map(); // id -> {socketId, color}
+// socketId -> { id, color }
+const players = new Map();
 const lines = [];
 let gameStarted = false;
+
+function getPlayers() {
+    const obj = {};
+    for (const { id, color } of players.values()) {
+        obj[id] = { color };
+    }
+    return obj;
+}
 
 function emitPlayerCount() {
     broadcast.emit('playerCount', players.size);
@@ -20,8 +29,9 @@ function emitPlayerCount() {
 
 broadcast.on('connection', (socket) => {
     socket.on('join', ({ id, color }) => {
-        players.set(id, { socketId: socket.id, color });
-        socket.emit('state', { players: Object.fromEntries(players), lines });
+        players.set(socket.id, { id, color });
+        console.log('join', id, socket.id);
+        socket.emit('state', { players: getPlayers(), lines });
         emitPlayerCount();
     });
 
@@ -31,9 +41,15 @@ broadcast.on('connection', (socket) => {
     });
 
     socket.on('dead', ({ id }) => {
-        players.delete(id);
+        for (const [sid, info] of players.entries()) {
+            if (info.id === id) {
+                players.delete(sid);
+                break;
+            }
+        }
         socket.broadcast.emit('dead', { id });
         emitPlayerCount();
+        console.log('dead', id);
     });
 
     socket.on('start', () => {
@@ -45,13 +61,12 @@ broadcast.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        for (const [id, info] of players.entries()) {
-            if (info.socketId === socket.id) {
-                players.delete(id);
-                broadcast.emit('dead', { id });
-                emitPlayerCount();
-                break;
-            }
+        const info = players.get(socket.id);
+        if (info) {
+            players.delete(socket.id);
+            broadcast.emit('dead', { id: info.id });
+            emitPlayerCount();
+            console.log('disconnect', info.id);
         }
     });
 });
