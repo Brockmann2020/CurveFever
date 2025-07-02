@@ -19,6 +19,18 @@
             background-color: #000;
             border: 2px solid #fff;
         }
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0,0,0,0.8);
+        }
         #info {
             margin-bottom: 10px;
         }
@@ -28,6 +40,10 @@
 </head>
 <body>
 <canvas id="gameCanvas" width="1000" height="700"></canvas>
+<div id="overlay">
+    <p id="playerInfo">Players: 1</p>
+    <button id="startBtn" disabled>Start</button>
+</div>
 </body>
 <script>
     "user strict";
@@ -52,7 +68,12 @@
     let gameOver = false, animationFrameId;
 
     /* ───────────────────────────── Setup & Join ───────────────────────────── */
-    initializeGame();
+    socket.emit('join',{ id:myId, color:myColor });
+    const startBtn  = document.getElementById('startBtn');
+    const overlay   = document.getElementById('overlay');
+    const playerInfo = document.getElementById('playerInfo');
+    startBtn.addEventListener('click', () => socket.emit('start'));
+
     function initializeGame(){
         // zufällige Start­position
         players[myId].x = config.size + Math.random()*(canvas.width  - config.size*2);
@@ -63,8 +84,6 @@
         framesUntilStateChange = randInt(minDrawFrames, maxDrawFrames);
         gameOver  = false;
         ctx.clearRect(0,0,canvas.width,canvas.height);
-
-        socket.emit('join',{ id:myId, color:myColor });
         gameLoop();
     }
 
@@ -83,6 +102,17 @@
     socket.on('dead', ({ id })=>{
         if(players[id]) players[id].alive=false;
         if(id===myId)   endGame();
+    });
+
+    socket.on('playerCount', count => {
+        playerInfo.textContent = `Players connected: ${count}`;
+        startBtn.disabled = count < 2;
+    });
+
+    socket.on('start', () => {
+        overlay.style.display = 'none';
+        startBtn.disabled = true;
+        initializeGame();
     });
 
     /* ───────────────────────────── Game Loop ───────────────────────────── */
