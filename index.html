@@ -40,10 +40,12 @@
 </head>
 <body>
 <canvas id="gameCanvas" width="1000" height="700"></canvas>
+
 <div id="overlay">
     <p id="playerInfo">Players: 1</p>
     <button id="startBtn" disabled>Start</button>
 </div>
+
 </body>
 <script>
     "user strict";
@@ -72,6 +74,7 @@
     const startBtn  = document.getElementById('startBtn');
     const overlay   = document.getElementById('overlay');
     const playerInfo = document.getElementById('playerInfo');
+
     startBtn.addEventListener('click', () => socket.emit('start'));
 
     function initializeGame(){
